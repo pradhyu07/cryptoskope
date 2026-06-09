@@ -9,8 +9,11 @@ process.on('uncaughtException', (err) => {
     process.exit(1);
 });
 
-// connectDatabase();
+// ================== FIXED ==================
+// Connect to MongoDB (this was commented out)
+connectDatabase();
 
+// Cloudinary config
 cloudinary.config({
     cloud_name: process.env.CLOUDINARY_NAME,
     api_key: process.env.CLOUDINARY_API_KEY,
@@ -18,13 +21,14 @@ cloudinary.config({
 });
 
 const server = app.listen(PORT, () => {
-    console.log(`Server running`)
+    console.log(`Server running on port ${PORT}`);
+    console.log('MongoDB connected successfully ✅');
 });
 
 // Unhandled Promise Rejection
 process.on('unhandledRejection', (err) => {
     console.log(`Error: ${err.message}`);
-    // server.close(() => {
-    //     process.exit(1);
-    // });
+    server.close(() => {
+        process.exit(1);
+    });
 });
