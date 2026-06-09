@@ -1,8 +1,8 @@
-import { Button } from "./ui/button"
-import { WalletIcon, CopyIcon, ExternalLinkIcon, LogOutIcon, ChevronRightIcon, NetworkIcon } from "lucide-react"
-import { useWallet } from "@/hooks/useWallet"
-import { useState } from "react"
-import { Separator } from "./ui/separator"
+import { Button } from "./ui/button";
+import { WalletIcon, CopyIcon, ExternalLinkIcon, LogOutIcon, ChevronRightIcon, NetworkIcon } from "lucide-react";
+import { useWallet } from "@/hooks/useWallet";
+import { useState } from "react";
+import { Separator } from "./ui/separator";
 
 export function WalletPopup() {
   const { account, balance, network, disconnectWallet } = useWallet();
@@ -10,18 +10,12 @@ export function WalletPopup() {
 
   const getNetworkIcon = (chainId: string) => {
     switch (chainId) {
-      case '1':
-        return '🟢'; // Ethereum Mainnet
-      case '5':
-        return '🟡'; // Goerli
-      case '11155111':
-        return '🟣'; // Sepolia
-      case '137':
-        return '🟣'; // Polygon
-      case '80001':
-        return '🟡'; // Mumbai
-      default:
-        return '⚪';
+      case '1': return '🟢';
+      case '5': return '🟡';
+      case '11155111': return '🟣';
+      case '137': return '🟣';
+      case '80001': return '🟡';
+      default: return '⚪';
     }
   };
 
@@ -35,7 +29,7 @@ export function WalletPopup() {
 
   const viewOnExplorer = () => {
     if (account && network) {
-      const explorerUrl = network.chainId === '1' 
+      const explorerUrl = network.chainId === '1'
         ? `https://etherscan.io/address/${account}`
         : `https://goerli.etherscan.io/address/${account}`;
       window.open(explorerUrl, '_blank');
@@ -79,6 +73,7 @@ export function WalletPopup() {
               <span className="font-medium text-sm">{network?.name}</span>
             </div>
           </div>
+
           <div className="flex items-center justify-between bg-muted/50 rounded-lg p-2">
             <div className="flex items-center gap-2">
               <span className="text-lg">{getNetworkIcon(network?.chainId || '')}</span>
@@ -87,14 +82,11 @@ export function WalletPopup() {
                 <span className="text-xs text-muted-foreground">Chain ID: {network?.chainId}</span>
               </div>
             </div>
-            <Button
-              variant="ghost"
-              size="sm"
-              className="h-8 w-8 p-0 hover:bg-primary/20"
-            >
+            <Button variant="ghost" size="sm" className="h-8 w-8 p-0 hover:bg-primary/20">
               <NetworkIcon className="h-4 w-4" />
             </Button>
           </div>
+
           <div className="flex items-center justify-between">
             <span className="text-sm text-muted-foreground">Balance</span>
             <div className="flex items-center gap-2">
@@ -106,40 +98,51 @@ export function WalletPopup() {
 
         <Separator className="my-2" />
 
-        {/* Address Section */}
+        {/* Address Section - FIXED WITH COPY BUTTON */}
         <div className="space-y-3">
           <div className="flex items-center justify-between">
             <span className="text-sm text-muted-foreground">Address</span>
-            <div className="flex items-center gap-2">
-              <Button
-                variant="ghost"
-                size="sm"
-                className="h-8 w-8 p-0 hover:bg-primary/20"
-                onClick={copyAddress}
-              >
-                <CopyIcon className="h-4 w-4" />
-              </Button>
-              <Button
-                variant="ghost"
-                size="sm"
-                className="h-8 w-8 p-0 hover:bg-primary/20"
-                onClick={viewOnExplorer}
-              >
-                <ExternalLinkIcon className="h-4 w-4" />
-              </Button>
-            </div>
           </div>
+
+          {/* Full Address + Copy Button */}
+          <div className="flex items-center gap-3 bg-muted rounded-lg p-3">
+            <p className="font-mono text-sm break-all flex-1">
+              {account}
+            </p>
+            
+            <Button
+              variant="ghost"
+              size="sm"
+              className="h-8 w-8 p-0 hover:bg-primary/20"
+              onClick={copyAddress}
+            >
+              {copied ? (
+                <span className="text-green-500 text-xs">✓</span>
+              ) : (
+                <CopyIcon className="h-4 w-4" />
+              )}
+            </Button>
+          </div>
+
+          {/* Short Address + Explorer */}
           <div className="flex items-center justify-between bg-muted rounded-lg p-2">
             <span className="text-sm font-mono">
               {`${account.slice(0, 6)}...${account.slice(-4)}`}
             </span>
-            <ChevronRightIcon className="h-4 w-4 text-muted-foreground" />
+            <Button
+              variant="ghost"
+              size="sm"
+              className="h-8 w-8 p-0 hover:bg-primary/20"
+              onClick={viewOnExplorer}
+            >
+              <ExternalLinkIcon className="h-4 w-4" />
+            </Button>
           </div>
         </div>
 
-        {/* Quick Actions */}
         <Separator className="my-2" />
-        
+
+        {/* Quick Actions */}
         <div className="grid grid-cols-2 gap-2">
           <Button variant="outline" size="sm" className="w-full">
             <span className="text-sm">Send</span>
@@ -151,4 +154,4 @@ export function WalletPopup() {
       </div>
     </div>
   );
-} 
+}

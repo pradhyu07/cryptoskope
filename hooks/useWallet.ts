@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { ethers } from 'ethers';
 
 declare global {
   interface Window {
@@ -43,13 +44,10 @@ export const useWallet = () => {
   const updateBalance = async (address: string) => {
     if (!window.ethereum) return;
     try {
-      const balance = await window.ethereum.request({
-        method: 'eth_getBalance',
-        params: [address, 'latest'],
-      });
-      // Convert from wei to ETH
-      const ethBalance = (parseInt(balance, 16) / 1e18).toFixed(4);
-      setBalance(ethBalance);
+      const provider = new ethers.providers.Web3Provider(window.ethereum);
+      const balanceWei = await provider.getBalance(address);
+      const ethBalance = ethers.utils.formatEther(balanceWei);
+      setBalance(parseFloat(ethBalance).toFixed(4));
     } catch (err) {
       console.error('Error fetching balance:', err);
     }
@@ -58,27 +56,42 @@ export const useWallet = () => {
   const updateNetwork = async () => {
     if (!window.ethereum) return;
     try {
-      const chainId = await window.ethereum.request({ method: 'eth_chainId' });
-      const networkInfo = await getNetworkInfo(chainId);
+      const provider = new ethers.providers.Web3Provider(window.ethereum);
+      const net = await provider.getNetwork();
+      const networkInfo = await getNetworkInfo(net.chainId.toString());
       setNetwork(networkInfo);
     } catch (err) {
       console.error('Error fetching network:', err);
     }
   };
 
+  const saveWalletAddressToDB = async (walletAddress: string) => {
+    try {
+      const response = await fetch('http://localhost:4000/api/v1/save-wallet', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ walletAddress }),
+      });
+      if (!response.ok) throw new Error('Failed to save wallet');
+      console.log('✅ Wallet address saved to DB');
+    } catch (err) {
+      console.error('Error saving wallet address:', err);
+    }
+  };
+
   useEffect(() => {
-    // Check if MetaMask is installed
     setIsMetaMaskInstalled(!!window.ethereum?.isMetaMask);
 
-    // Check if already connected
     const checkConnection = async () => {
       if (window.ethereum) {
         try {
-          const accounts = await window.ethereum.request({ method: 'eth_accounts' });
+          const provider = new ethers.providers.Web3Provider(window.ethereum);
+          const accounts = await provider.listAccounts();
           if (accounts.length > 0) {
-            setAccount(accounts[0]);
-            updateBalance(accounts[0]);
-            updateNetwork();
+            const address = accounts[0];
+            setAccount(address);
+            await updateBalance(address);
+            await updateNetwork();
           }
         } catch (err) {
           console.error('Error checking connection:', err);
@@ -88,15 +101,16 @@ export const useWallet = () => {
 
     checkConnection();
 
-    // Listen for account changes
-    const handleAccountsChanged = (accounts: string[]) => {
+    const handleAccountsChanged = async (accounts: string[]) => {
       if (accounts.length === 0) {
         setAccount(null);
         setBalance('0');
         setNetwork(null);
       } else {
-        setAccount(accounts[0]);
-        updateBalance(accounts[0]);
+        const address = accounts[0];
+        setAccount(address);
+        await updateBalance(address);
+        await saveWalletAddressToDB(address);
       }
     };
 
@@ -130,15 +144,19 @@ export const useWallet = () => {
     setError(null);
 
     try {
-      const accounts = await window.ethereum.request({
-        method: 'eth_requestAccounts',
-      });
-      setAccount(accounts[0]);
-      updateBalance(accounts[0]);
-      updateNetwork();
+      const provider = new ethers.providers.Web3Provider(window.ethereum);
+      await provider.send('eth_requestAccounts', []);
+      const signer = provider.getSigner();
+      const address = await signer.getAddress();
+
+      setAccount(address);
+      await updateBalance(address);
+      await updateNetwork();
+      await saveWalletAddressToDB(address);
+
       setIsOpen(true);
-    } catch (err) {
-      setError('Failed to connect wallet');
+    } catch (err: any) {
+      setError(err.message || 'Failed to connect wallet');
       console.error('Error connecting wallet:', err);
     } finally {
       setIsConnecting(false);
@@ -168,4 +186,4 @@ export const useWallet = () => {
     disconnectWallet,
     toggleWalletMenu,
   };
-}; 
+};
